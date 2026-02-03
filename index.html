@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talk to Consulting Note | 中小企業診断士・経営相談所</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans JP"', 'sans-serif'],
+                        maru: ['"Zen Maru Gothic"', 'sans-serif'],
+                    },
+                    colors: {
+                        talk: {
+                            orange: '#E77B25', // Main Brand
+                            purple: '#DBB3E7', // Secondary
+                            blue: '#42B4FF',   // Accent
+                            50: '#fff8f3',
+                            100: '#ffead6',
+                            600: '#d1620e',
+                            900: '#7c2d12',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #fdfaf8; /* Warm off-white */
+            color: #4a4a4a;
+        }
+        
+        h1, h2, h3, .brand-font {
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #cbd5e1;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #E77B25;
+            box-shadow: 0 0 0 3px rgba(231, 123, 37, 0.2);
+        }
+        
+        /* Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-700">
+    <div id="root" class="h-full flex flex-col"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Icons (SVG) ---
+        const Icon = ({ path, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{path}</svg>
+        );
+        const Briefcase = ({ className }) => <Icon className={className} path={<><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>} />;
+        const CheckCircle = ({ className }) => <Icon className={className} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />;
+        const Wand2 = ({ className }) => <Icon className={className} path={<><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/></>} />;
+        const FileText = ({ className }) => <Icon className={className} path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></>} />;
+        const Mail = ({ className }) => <Icon className={className} path={<><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></>} />;
+        const Copy = ({ className }) => <Icon className={className} path={<><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>} />;
+        const Settings = ({ className }) => <Icon className={className} path={<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>} />;
+        const ChevronRight = ({ className }) => <Icon className={className} path={<path d="m9 18 6-6-6-6"/>} />;
+        const Check = ({ className }) => <Icon className={className} path={<polyline points="20 6 9 17 4 12"/>} />;
+        const Calculator = ({ className }) => <Icon className={className} path={<><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="16" y1="18" x2="16" y2="18"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="12" y1="18" x2="12" y2="18"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="8" y1="18" x2="8" y2="18"/></>} />;
+        // Renamed 'Map' to 'MapIcon' to avoid conflict with JS Map object
+        const MapIcon = ({ className }) => <Icon className={className} path={<><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></>} />;
+        const Sparkles = ({ className }) => <Icon className={className} path={<><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></>} />;
+
+        // --- Constants & Data ---
+        const DOMAINS = [
+            { id: 'billing', label: '請求書発行' },
+            { id: 'quote', label: '見積作成' },
+            { id: 'order', label: '受発注処理' },
+            { id: 'attendance', label: '勤怠管理' },
+            { id: 'stock', label: '在庫管理' },
+            { id: 'report', label: '日報・報告' },
+            { id: 'customer', label: '顧客対応' }
+        ];
+
+        const TROUBLES = [
+            '紙・手書きが多い',
+            '二重入力の手間',
+            '計算ミス・誤入力',
+            '担当者しか分からない(属人化)',
+            '書類探しに時間がかかる',
+            '承認・確認が遅い'
+        ];
+
+        const FREQUENCY_OPTS = [
+            { val: 1, label: '毎月' },
+            { val: 4, label: '毎週' },
+            { val: 20, label: '毎日' }
+        ];
+
+        const TIME_OPTS = [
+            { val: 10, label: '10分' },
+            { val: 30, label: '30分' },
+            { val: 60, label: '60分~' }
+        ];
+
+        const TOOL_STATUS = [
+            { id: 'paper', label: '紙/手書き' },
+            { id: 'excel', label: 'Excel' },
+            { id: 'legacy', label: '古いソフト' },
+            { id: 'cloud', label: 'クラウド' }
+        ];
+
+        const SUPPORT_ITEMS = [
+            { id: 's1', text: '現状分析・業務フロー可視化' },
+            { id: 's2', text: 'ITツール選定・導入支援' },
+            { id: 's3', text: 'マニュアル作成・定着研修' },
+            { id: 's4', text: 'kintone等によるアプリ開発' },
+            { id: 's5', text: 'IT導入補助金等の申請支援' },
+            { id: 's6', text: 'セキュリティ・権限設定' }
+        ];
+
+        const PLANS = {
+            'planSS': { 
+                name: 'SS 経営変革・事業再生フルコミット', 
+                price: 600000, 
+                desc: '【週1訪問】経営幹部として参画。組織改革、事業承継、PMIなど、社運を賭けたプロジェクトを完遂までリードします。' 
+            },
+            'planS': { 
+                name: 'S 経営企画室代行・伴走プラン', 
+                price: 300000, 
+                desc: '【月2回訪問】社長の右腕として、予実管理体制の構築や金融機関交渉、部門間調整など、実務を強力に推進します。' 
+            },
+            'planA': { 
+                name: 'A 事業成長・実行支援プラン', 
+                price: 150000, 
+                desc: '【月1回訪問】策定した計画の実行管理（予実管理）を主軸とした標準的な顧問契約。PDCAサイクルを回します。' 
+            },
+            'planB': { 
+                name: 'B 定期アドバイザリープラン', 
+                price: 80000, 
+                desc: '【月1回オンライン】90分の戦略面談。現状の壁打ちや課題整理、意思決定のサポートを中心としたライトな顧問契約。' 
+            },
+            'planC': { 
+                name: 'C スポット診断・相談プラン', 
+                price: 50000, 
+                desc: '単発での経営診断、または補助金申請の初回相談など。（報告書作成費別途）' 
+            }
+        };
+
+        // --- Main Application ---
+        const App = () => {
+            // UI State
+            const [activeTab, setActiveTab] = useState('roadmap');
+            const [showToast, setShowToast] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+
+            // Data State
+            const [diagnosis, setDiagnosis] = useState({}); // { domainId: { active: bool, freq: val, time: val, tool: id } }
+            const [selectedTroubles, setSelectedTroubles] = useState([]);
+            const [checkedSupports, setCheckedSupports] = useState([]);
+            const [selectedPlan, setSelectedPlan] = useState('planB');
+            const [options, setOptions] = useState({ monthly: false, advisor: false });
+            const [customNeed, setCustomNeed] = useState('');
+            const [diagnosisMemo, setDiagnosisMemo] = useState('');
+            
+            // User Profile
+            const [profile, setProfile] = useState({
+                companyName: '〇〇中小企業診断士事務所',
+                personName: '山田 太郎',
+                phone: '090-0000-0000',
+                email: 'info@example.com'
+            });
+
+            // Outputs
+            const [totalPrice, setTotalPrice] = useState(0);
+            const [generatedEmail, setGeneratedEmail] = useState('');
+            const [generatedRoadmap, setGeneratedRoadmap] = useState('');
+            const [generatedContract, setGeneratedContract] = useState('');
+            
+            // AI Prompts Outputs
+            const [generatedNotebookSource, setGeneratedNotebookSource] = useState('');
+            const [generatedVisualPrompt, setGeneratedVisualPrompt] = useState('');
+
+            const [priorityDomains, setPriorityDomains] = useState([]);
+            const [savedTimeMonth, setSavedTimeMonth] = useState(0);
+
+            // Logic: Scoring & Calculation
+            useEffect(() => {
+                // 1. Calculate Score for each domain
+                // Score = Freq * Time * ToolFactor
+                // ToolFactor: Paper=1.5, Excel=1.2, Legacy=1.1, Cloud=0.8
+                let newPriorities = [];
+                let totalMinutes = 0;
+
+                DOMAINS.forEach(d => {
+                    const data = diagnosis[d.id];
+                    if (data && data.active) {
+                        const freq = data.freq || 1;
+                        const time = data.time || 10;
+                        let toolFactor = 1.0;
+                        if (data.tool === 'paper') toolFactor = 1.5;
+                        if (data.tool === 'excel') toolFactor = 1.2;
+                        if (data.tool === 'legacy') toolFactor = 1.1;
+                        if (data.tool === 'cloud') toolFactor = 0.8;
+
+                        const score = freq * time * toolFactor;
+                        const minutesMonth = freq * time; // 月間消費時間（1回あたり時間×頻度）
+
+                        newPriorities.push({
+                            id: d.id,
+                            label: d.label,
+                            score: score,
+                            minutes: minutesMonth,
+                            tool: data.tool
+                        });
+
+                        // 削減ポテンシャル（DXで50%削減できると仮定）
+                        totalMinutes += minutesMonth * 0.5;
+                    }
+                });
+
+                // Sort by score
+                newPriorities.sort((a, b) => b.score - a.score);
+                setPriorityDomains(newPriorities.slice(0, 3));
+                setSavedTimeMonth(Math.round(totalMinutes / 60)); // Hours
+
+                // 2. Calc Price
+                let total = 0;
+                if (selectedPlan && PLANS[selectedPlan]) {
+                    total += PLANS[selectedPlan].price;
+                }
+                if (options.monthly) total += 20000;
+                if (options.advisor) total += 30000;
+                setTotalPrice(total);
+
+            }, [diagnosis, selectedPlan, options]);
+
+            // Logic: Generate Texts
+            useEffect(() => {
+                const plan = PLANS[selectedPlan];
+                if (!plan) return;
+
+                const top3Names = priorityDomains.map(d => `・${d.label}`).join('\n') || '・特になし';
+                const troubleText = selectedTroubles.length > 0 ? selectedTroubles.join('、') : '特になし';
+                const supportText = checkedSupports.length > 0 ? checkedSupports.map(s => `・${s}`).join('\n') : '・貴社の状況に合わせて柔軟に対応いたします';
+                
+                // 1. Roadmap & Diagnosis Report
+                const roadmap = `
+【DX推進・業務改善ロードマップ】
+作成日：${new Date().toLocaleDateString()}
+担当：${profile.personName}
+
+■DX入口診断結果
+現在、優先的に着手すべき業務領域（TOP3）は以下の通りです。
+${top3Names}
+
+主な課題感：${troubleText}
+試算される月間削減時間目安：約${savedTimeMonth}時間 / 月
+
+${diagnosisMemo ? `■診断メモ・特記事項\n${diagnosisMemo}\n` : ''}
+■3ヶ月ロードマップ（導入・定着期）
+1ヶ月目：現状の可視化とツール選定
+・${priorityDomains[0]?.label || '優先業務'}の業務フロー整理
+・課題（${troubleText}）に対応するクラウドツールのトライアル導入
+
+2ヶ月目：パイロット運用
+・一部の担当者によるテスト運用開始
+・マニュアル作成と運用ルールの策定
+
+3ヶ月目：本格稼働・効果測定
+・全社/全部署への展開
+・削減時間の計測と、次の課題（${priorityDomains[1]?.label || '次の業務'}）への着手準備
+
+■6ヶ月後の到達目標
+・${priorityDomains[0]?.label || '対象業務'}のデジタル化完了
+・月間約${savedTimeMonth}時間の業務時間削減
+・${troubleText.includes('属人化') ? '業務の標準化による属人化の解消' : 'データ活用による経営判断の迅速化'}
+`.trim();
+
+                // 2. Email
+                const email = `
+件名：DX推進・業務改善プランのご提案
+
+いつも大変お世話になっております。
+${profile.companyName}の${profile.personName}です。
+
+先ほどは、業務の現状についてお聞かせいただきありがとうございました。
+診断結果に基づき、貴社のDX推進に向けた最適なプランを作成いたしました。
+
+まずは特に負荷の高い「${priorityDomains[0]?.label || '業務'}」から着手し、
+月間約${savedTimeMonth}時間の業務効率化を目指すロードマップをご提案します。
+
+--------------------------------------------------
+【ご提案内容】
+プラン名：${plan.name}
+月額費用：${totalPrice.toLocaleString()}円（税抜）
+
+■診断による優先着手テーマ
+${top3Names}
+
+■主なご支援内容
+${supportText}
+
+■期待される効果
+・${troubleText}の解消
+・月間約${savedTimeMonth}時間の工数削減（想定）
+
+■ご契約形態
+・業務委託契約（準委任契約）となります。
+--------------------------------------------------
+
+詳細なロードマップにつきましては、添付資料をご確認ください。
+まずはスモールスタートで、確実な成果を作っていければと考えております。
+
+引き続き、何卒よろしくお願い申し上げます。
+
+--------------------------------------------------
+${profile.companyName}
+${profile.personName}
+Email: ${profile.email}
+--------------------------------------------------
+`.trim();
+
+                // 3. Contract (Updated for DX/SOW)
+                const contract = `
+【業務委託契約書（案） 主要条文抜粋】
+
+第1条（目的）
+甲（委託者）は、乙（受託者）に対し、甲の経営課題解決およびDX（デジタルトランスフォーメーション）推進支援業務を委託し、乙はこれを受託する。
+
+第2条（業務の内容・範囲）
+乙は、本契約に基づき、以下の業務を行う。なお、本契約は準委任契約とし、乙は善良なる管理者の注意をもって業務を遂行する義務を負うが、仕事の完成義務は負わないものとする。
+
+1. DX推進コンサルティング支援（プラン：${plan.name}）
+   - ${plan.desc}
+2. 優先して取り組む具体的支援事項
+   - ${top3Names.replace(/\n/g, '、').replace(/・/g, '')}を中心とした改善活動の支援
+   - 解決すべき課題：${troubleText}
+3. 具体的な作業内容
+   ${checkedSupports.length > 0 ? checkedSupports.map(s => `- ${s}`).join('\n   ') : '- 甲の経営課題解決に向けた助言・指導'}
+
+第3条（委託料）
+1. 金額：月額 ${totalPrice.toLocaleString()} 円（消費税別途）
+2. 支払条件：毎月末日締め、翌月末日払い
+3. 支払方法：乙の指定する銀行口座への振込（振込手数料は甲負担）
+
+第4条（契約期間）
+本契約の有効期間は、契約締結日から○ヶ月間とする。ただし、期間満了の1ヶ月前までに甲乙いずれからも書面による申し出がない場合、同一条件にて自動的に更新されるものとする。
+
+第5条（秘密保持）
+甲および乙は、本業務の遂行に関連して知り得た相手方の技術上・営業上その他一切の秘密情報を、相手方の事前の書面による承諾なく第三者に開示または漏洩してはならない。
+`.trim();
+
+                // 4. NotebookLM Source
+                const nbSource = `
+# クライアントDX診断レポート・現状整理シート
+
+## 1. 基本情報
+- 作成日: ${new Date().toLocaleDateString()}
+- 担当コンサルタント: ${profile.personName}
+- 提案プラン: ${plan.name}
+
+## 2. DX入口診断結果 (優先順位順)
+${priorityDomains.map((d, i) => `${i+1}. ${d.label} (スコア:${d.score})
+   - 現状ツール: ${TOOL_STATUS.find(t=>t.id===d.tool)?.label}
+   - 推定月間工数: ${d.minutes}分
+`).join('')}
+
+## 3. クライアントの課題認識
+${selectedTroubles.map(t => `- ${t}`).join('\n')}
+
+## 4. 診断メモ・定性情報
+${diagnosisMemo || '特になし'}
+
+## 5. 提案ロードマップ（概要）
+- 月間削減目標: 約${savedTimeMonth}時間
+- 第1フェーズ: 現状可視化とツール選定
+- 第2フェーズ: パイロット運用とマニュアル化
+- 第3フェーズ: 本格稼働と効果測定
+
+## 6. 導入支援スコープ
+${checkedSupports.map(s => `- ${s}`).join('\n')}
+`.trim();
+
+                // 5. NotebookLM Prompts (Updated based on user request)
+                const visualPrompts = `
+【NotebookLMへの入力プロンプト例】
+ソースを読み込ませた後、チャット欄に以下の指示を入力して、資料の構成案を作成させてください。
+
+■1. インフォグラフィック構成案の作成
+「このクライアントの現状（Before）と、DX導入後の姿（After）を対比させるインフォグラフィックの構成案を作成してください。
+特に『${troubleText}』という課題がどう解消されるか、視覚的に伝わる図解のイメージや、配置すべきキーワードを具体的に提案してください。」
+
+■2. 提案スライド構成案（5枚）の作成
+「この提案内容をもとに、経営者向けのプレゼン資料（スライド5枚）の構成を作成してください。
+各スライドについて、『タイトル』『メインメッセージ』『箇条書きにする詳細内容』『スライドに配置すべき図やグラフのイメージ』を出力してください。
+ストーリーは、現状の課題提起から始まり、解決策（${plan.name}）の提示、ロードマップ、費用対効果の順で説得力のある構成にしてください。」
+`.trim();
+
+                setGeneratedRoadmap(roadmap);
+                setGeneratedEmail(email);
+                setGeneratedContract(contract);
+                setGeneratedNotebookSource(nbSource);
+                setGeneratedVisualPrompt(visualPrompts);
+
+            }, [priorityDomains, savedTimeMonth, selectedTroubles, checkedSupports, selectedPlan, totalPrice, profile, diagnosisMemo]);
+
+
+            // Handlers
+            const toggleDomain = (id) => {
+                setDiagnosis(prev => {
+                    const current = prev[id] || {};
+                    if (current.active) {
+                        // Deactivate
+                        const next = { ...prev };
+                        delete next[id];
+                        return next;
+                    } else {
+                        // Activate with defaults
+                        return { ...prev, [id]: { active: true, freq: 20, time: 30, tool: 'paper' } };
+                    }
+                });
+            };
+
+            const updateDomainData = (id, field, value) => {
+                setDiagnosis(prev => ({
+                    ...prev,
+                    [id]: { ...prev[id], [field]: value }
+                }));
+            };
+
+            const toggleTrouble = (text) => {
+                setSelectedTroubles(prev => prev.includes(text) ? prev.filter(t => t !== text) : [...prev, text]);
+            };
+
+            const toggleSupport = (text) => {
+                setCheckedSupports(prev => prev.includes(text) ? prev.filter(t => t !== text) : [...prev, text]);
+            };
+
+            const copyToClipboard = (text) => {
+                if (!text) return;
+                const handleSuccess = () => {
+                    setShowToast(true);
+                    setTimeout(() => setShowToast(false), 2000);
+                };
+                try {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-9999px";
+                    textArea.setAttribute('readonly', '');
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    handleSuccess();
+                } catch (err) {
+                    console.error('Copy Error', err);
+                }
+            };
+
+            return (
+                <>
+                {/* Header */}
+                <header className="bg-white border-b border-talk-orange/20 h-16 flex-none shadow-sm z-50">
+                    <div className="max-w-[1600px] mx-auto px-4 h-full flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-talk-orange to-talk-purple rounded-xl flex items-center justify-center text-white shadow-md">
+                                <Briefcase className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-bold text-slate-800 tracking-tight brand-font">Talk to Consulting Note</h1>
+                                <p className="text-[10px] text-slate-500 font-medium">中小企業診断士のための戦略整理・提案ツール</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-slate-400 hover:text-talk-orange transition-colors" title="設定">
+                            <Settings className="h-5 w-5" />
+                        </button>
+                    </div>
+                </header>
+
+                {/* Main Layout */}
+                <main className="flex-grow max-w-[1600px] w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-4rem)] overflow-hidden">
+                    
+                    {/* Left Column: Inputs */}
+                    <section className="lg:col-span-5 flex flex-col h-full bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 bg-talk-50/50 flex justify-between items-center flex-shrink-0">
+                            <h2 className="text-lg font-bold text-slate-700 flex items-center gap-2 brand-font">
+                                <FileText className="h-5 w-5 text-talk-orange" /> 診断・要件定義
+                            </h2>
+                        </div>
+
+                        <div className="flex-grow overflow-y-auto custom-scrollbar p-5 space-y-6 pb-24">
+                            
+                            {/* Step 0: DX入口診断 */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="w-6 h-6 rounded-full bg-talk-orange text-white text-xs font-bold flex items-center justify-center">0</span>
+                                    <h3 className="font-bold text-slate-700 brand-font">DX入口診断</h3>
+                                </div>
+                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+                                    {/* 困りごと */}
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 block mb-2">現在の困りごと（複数選択）</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {TROUBLES.map(t => (
+                                                <button 
+                                                    key={t}
+                                                    onClick={() => toggleTrouble(t)}
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${selectedTroubles.includes(t) ? 'bg-talk-orange text-white border-talk-orange' : 'bg-white text-slate-600 border-slate-200 hover:border-talk-orange'}`}
+                                                >
+                                                    {t}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 業務領域詳細 */}
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 block mb-2">改善したい業務領域（タップして詳細設定）</label>
+                                        <div className="space-y-2">
+                                            {DOMAINS.map(d => {
+                                                const isActive = diagnosis[d.id]?.active;
+                                                const data = diagnosis[d.id] || { freq: 20, time: 30, tool: 'paper' };
+                                                
+                                                return (
+                                                    <div key={d.id} className={`border rounded-lg overflow-hidden transition-all ${isActive ? 'border-talk-orange bg-white shadow-sm' : 'border-slate-200 bg-white'}`}>
+                                                        <div 
+                                                            onClick={() => toggleDomain(d.id)}
+                                                            className={`p-3 flex items-center justify-between cursor-pointer ${isActive ? 'bg-orange-50' : 'hover:bg-slate-50'}`}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={`w-4 h-4 rounded border flex items-center justify-center ${isActive ? 'bg-talk-orange border-talk-orange' : 'border-slate-300 bg-white'}`}>
+                                                                    {isActive && <Check className="w-3 h-3 text-white" />}
+                                                                </div>
+                                                                <span className={`text-sm font-bold ${isActive ? 'text-talk-orange' : 'text-slate-600'}`}>{d.label}</span>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {isActive && (
+                                                            <div className="p-3 border-t border-orange-100 space-y-3 bg-white animate-fade-in">
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div>
+                                                                        <label className="text-[10px] text-slate-400 block mb-1">頻度</label>
+                                                                        <select 
+                                                                            value={data.freq} 
+                                                                            onChange={(e) => updateDomainData(d.id, 'freq', parseInt(e.target.value))}
+                                                                            className="w-full text-xs border border-slate-200 rounded p-1.5 bg-slate-50"
+                                                                        >
+                                                                            {FREQUENCY_OPTS.map(o => <option key={o.val} value={o.val}>{o.label}</option>)}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[10px] text-slate-400 block mb-1">1回あたりの工数</label>
+                                                                        <select 
+                                                                            value={data.time} 
+                                                                            onChange={(e) => updateDomainData(d.id, 'time', parseInt(e.target.value))}
+                                                                            className="w-full text-xs border border-slate-200 rounded p-1.5 bg-slate-50"
+                                                                        >
+                                                                            {TIME_OPTS.map(o => <option key={o.val} value={o.val}>{o.label}</option>)}
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-[10px] text-slate-400 block mb-1">現在のツール</label>
+                                                                    <div className="flex bg-slate-100 rounded p-0.5">
+                                                                        {TOOL_STATUS.map(t => (
+                                                                            <button
+                                                                                key={t.id}
+                                                                                onClick={() => updateDomainData(d.id, 'tool', t.id)}
+                                                                                className={`flex-1 py-1 text-[10px] rounded transition-all ${data.tool === t.id ? 'bg-white shadow text-talk-orange font-bold' : 'text-slate-500 hover:text-slate-700'}`}
+                                                                            >
+                                                                                {t.label}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* 診断メモ */}
+                                    <div className="mt-4 pt-4 border-t border-slate-100">
+                                        <label className="text-xs font-bold text-slate-500 block mb-2">診断メモ・特記事項</label>
+                                        <textarea
+                                            className="w-full p-3 text-xs border border-slate-200 rounded-lg bg-white resize-none h-20 focus:ring-2 focus:ring-talk-orange/20 focus:border-talk-orange outline-none transition-all"
+                                            placeholder="ヒアリング時のメモや、特有の事情などを記入..."
+                                            value={diagnosisMemo}
+                                            onChange={(e) => setDiagnosisMemo(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Step 2: Supports */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="w-6 h-6 rounded-full bg-talk-purple text-white text-xs font-bold flex items-center justify-center">2</span>
+                                    <h3 className="font-bold text-slate-700 brand-font">提供する解決策 (Seeds)</h3>
+                                </div>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {SUPPORT_ITEMS.map(item => (
+                                        <label key={item.id} className={`flex items-center gap-3 p-3 rounded-xl border border-dashed cursor-pointer transition-all ${checkedSupports.includes(item.text) ? 'bg-talk-50 border-talk-purple shadow-sm' : 'bg-white border-slate-300 hover:border-talk-purple/50'}`}>
+                                            <input type="checkbox" className="hidden" onChange={() => toggleSupport(item.text)} checked={checkedSupports.includes(item.text)} />
+                                            <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${checkedSupports.includes(item.text) ? 'bg-talk-purple border-talk-purple' : 'border-slate-400 bg-white'}`}>
+                                                {checkedSupports.includes(item.text) && <Check className="w-3 h-3 text-white" />}
+                                            </div>
+                                            <span className="text-xs font-medium text-slate-700">{item.text}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Step 3: Plans */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="w-6 h-6 rounded-full bg-talk-blue text-white text-xs font-bold flex items-center justify-center">3</span>
+                                    <h3 className="font-bold text-slate-700 brand-font">提案プラン選択</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {Object.entries(PLANS).map(([key, plan]) => (
+                                        <label key={key} className={`block cursor-pointer relative group`}>
+                                            <input type="radio" name="plan" className="peer sr-only" checked={selectedPlan === key} onChange={() => setSelectedPlan(key)} />
+                                            <div className={`border-2 rounded-xl p-4 transition-all duration-200 hover:border-talk-blue/50 peer-checked:border-talk-blue peer-checked:bg-blue-50/30 peer-checked:shadow-md relative overflow-hidden bg-white border-slate-100`}>
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h4 className={`font-bold text-sm ${selectedPlan === key ? 'text-talk-blue' : 'text-slate-700'}`}>{plan.name}</h4>
+                                                    <span className="font-bold text-slate-600 text-sm">¥{plan.price.toLocaleString()}</span>
+                                                </div>
+                                                <p className="text-xs text-slate-500">{plan.desc}</p>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                                {/* Options */}
+                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex flex-wrap gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" className="rounded text-talk-blue focus:ring-talk-blue" checked={options.monthly} onChange={(e) => setOptions({...options, monthly: e.target.checked})} />
+                                        <span className="text-xs font-bold text-slate-600">訪問対応 (+2万)</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" className="rounded text-talk-blue focus:ring-talk-blue" checked={options.advisor} onChange={(e) => setOptions({...options, advisor: e.target.checked})} />
+                                        <span className="text-xs font-bold text-slate-600">専門家派遣登録 (+3万)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+                    </section>
+
+                    {/* Right Column: Outputs */}
+                    <section className="lg:col-span-7 flex flex-col h-full overflow-hidden relative">
+                        
+                        {/* Status Monitor (Header) */}
+                        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex justify-between items-center flex-shrink-0 relative overflow-hidden">
+                            <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-talk-orange to-talk-purple"></div>
+                            <div>
+                                <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Monthly Estimate</h2>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-3xl font-bold text-slate-800 brand-font">¥{totalPrice.toLocaleString()}</span>
+                                    <span className="text-xs text-slate-500">/ 月（税抜）</span>
+                                </div>
+                            </div>
+                            <div className="text-right flex flex-col items-end">
+                                <div className="bg-orange-50 px-3 py-1 rounded-full mb-1 border border-orange-100">
+                                    <span className="text-[10px] text-slate-500">削減目安:</span>
+                                    <span className="text-sm font-bold text-talk-orange ml-1">{savedTimeMonth}時間/月</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400">{PLANS[selectedPlan]?.name}</p>
+                            </div>
+                        </div>
+
+                        {/* Output Tabs */}
+                        <div className="flex overflow-x-auto gap-2 mb-4 pb-1 custom-scrollbar flex-shrink-0">
+                            {[
+                                { id: 'roadmap', label: '診断・ロードマップ', icon: <MapIcon className="w-4 h-4"/> },
+                                { id: 'email', label: '提案メール', icon: <Mail className="w-4 h-4"/> },
+                                { id: 'prompt', label: '提案書作成', icon: <Sparkles className="w-4 h-4"/> },
+                                { id: 'contract', label: '契約書条文', icon: <FileText className="w-4 h-4"/> },
+                            ].map(tab => (
+                                <button 
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === tab.id ? 'bg-slate-800 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}
+                                >
+                                    {tab.icon} {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="flex-grow bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex flex-col relative group">
+                            
+                            {/* Copy Button (Only for single textarea views) */}
+                            {activeTab !== 'prompt' && (
+                                <div className="absolute top-4 right-4 z-10">
+                                    <button 
+                                        onClick={() => copyToClipboard(activeTab === 'roadmap' ? generatedRoadmap : activeTab === 'email' ? generatedEmail : generatedContract)}
+                                        className="bg-slate-100 hover:bg-talk-orange hover:text-white text-slate-600 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-colors shadow-sm"
+                                    >
+                                        <Copy className="w-3.5 h-3.5" /> コピー
+                                    </button>
+                                </div>
+                            )}
+                            
+                            <div className="flex-grow p-0 overflow-hidden h-full">
+                                {activeTab === 'prompt' ? (
+                                    <div className="flex flex-col h-full overflow-hidden">
+                                        {/* NotebookLM Source Block */}
+                                        <div className="h-1/2 p-4 bg-talk-purple/5 border-b border-talk-purple/10 flex flex-col">
+                                            <div className="flex justify-between items-center mb-2 flex-shrink-0">
+                                                <span className="text-xs font-bold text-talk-purple flex items-center gap-1">
+                                                    <span className="w-2 h-2 rounded-full bg-talk-purple"></span>
+                                                    NotebookLM用ソース (データ)
+                                                </span>
+                                                <button onClick={() => copyToClipboard(generatedNotebookSource)} className="text-[10px] bg-white border border-talk-purple/30 text-talk-purple px-2 py-1 rounded hover:bg-talk-purple hover:text-white transition-colors flex items-center gap-1">
+                                                    <Copy className="w-3 h-3" /> コピー
+                                                </button>
+                                            </div>
+                                            <textarea 
+                                                className="w-full flex-grow text-xs leading-relaxed text-slate-700 resize-none border border-slate-200 rounded-lg p-3 bg-white focus:ring-1 focus:ring-talk-purple"
+                                                value={generatedNotebookSource}
+                                                readOnly
+                                            ></textarea>
+                                        </div>
+                                        
+                                        {/* Visual/Slide Prompt Block */}
+                                        <div className="h-1/2 p-4 bg-talk-blue/5 flex flex-col">
+                                            <div className="flex justify-between items-center mb-2 flex-shrink-0">
+                                                <span className="text-xs font-bold text-talk-blue flex items-center gap-1">
+                                                    <span className="w-2 h-2 rounded-full bg-talk-blue"></span>
+                                                    NotebookLM指示プロンプト (Chat)
+                                                </span>
+                                                <button onClick={() => copyToClipboard(generatedVisualPrompt)} className="text-[10px] bg-white border border-talk-blue/30 text-talk-blue px-2 py-1 rounded hover:bg-talk-blue hover:text-white transition-colors flex items-center gap-1">
+                                                    <Copy className="w-3 h-3" /> コピー
+                                                </button>
+                                            </div>
+                                            <textarea 
+                                                className="w-full flex-grow text-xs leading-relaxed text-slate-700 resize-none border border-slate-200 rounded-lg p-3 bg-white focus:ring-1 focus:ring-talk-blue"
+                                                value={generatedVisualPrompt}
+                                                readOnly
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <textarea 
+                                        className="w-full h-full p-6 text-sm leading-relaxed text-slate-700 resize-none border-none focus:ring-0 bg-talk-50/30 font-sans"
+                                        value={activeTab === 'roadmap' ? generatedRoadmap : activeTab === 'email' ? generatedEmail : generatedContract}
+                                        readOnly
+                                    ></textarea>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Brand Footer */}
+                        <div className="mt-4 text-center">
+                            <p className="text-[10px] text-slate-400">Powered by Talk to Consulting Note DX Edition</p>
+                        </div>
+                    </section>
+
+                </main>
+
+                {/* Settings Modal */}
+                {showSettings && (
+                    <div className="fixed inset-0 bg-slate-900/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                            <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-700 brand-font">基本情報設定</h3>
+                                <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-slate-600">×</button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">事務所名・屋号</label>
+                                    <input type="text" value={profile.companyName} onChange={e => setProfile({...profile, companyName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">お名前</label>
+                                    <input type="text" value={profile.personName} onChange={e => setProfile({...profile, personName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">電話番号</label>
+                                        <input type="text" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Email</label>
+                                        <input type="text" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 border-t border-slate-100 bg-white">
+                                <button onClick={() => setShowSettings(false)} className="w-full bg-talk-orange text-white font-bold py-3 rounded-xl shadow-md hover:bg-orange-600 transition-colors">設定を保存して閉じる</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Toast */}
+                <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-xl z-[200] transition-all duration-300 flex items-center gap-2 ${showToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                    <Check className="w-4 h-4 text-green-400" />
+                    <span className="text-sm font-medium">コピーしました！</span>
+                </div>
+                </>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
